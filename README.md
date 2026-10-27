@@ -1,8 +1,8 @@
-# Platebook
+# 灶记
 
-Platebook is a mobile-first web app for keeping recipes you have actually cooked.
+灶记 is a personal cookbook of dishes you have actually cooked. The English name is CookedBook: not a pile of saved tutorials, but the book of recipes that already worked in your kitchen.
 
-The point is not to collect every tutorial on the internet. When you want to make a dish again, you should not have to search again, dig through a messy save list, or hope the original post is still there. If you made it, it turned out well, and you want to make it again, it belongs in Platebook.
+The point is not to collect every tutorial on the internet. When you want to make a dish again, you should not have to search again, dig through a messy save list, or hope the original post is still there. If you made it, it turned out well, and you want to make it again, it belongs in 灶记.
 
 ## Why it exists
 
@@ -12,7 +12,7 @@ Saved posts and screenshots are a bad cookbook:
 - The author may delete the tutorial later
 - Next time you cook, you have to hunt for the same post all over again
 
-Platebook keeps **your working version** of the dish: what you used, how you cooked it, and any changes you made. That version stays even if the original post disappears.
+灶记 keeps **your working version** of the dish: what you used, how you cooked it, and any changes you made. That version stays even if the original post disappears.
 
 ## What you can do
 
@@ -50,7 +50,7 @@ Example flow:
 2. You save a photo of what you made.
 3. You upload a social-media screenshot, or you type the recipe.
 4. If AI ran, you check and fix the extracted text.
-5. Platebook stores the recipe on your menu so you can make it again without finding the original post.
+5. 灶记 stores the recipe on your menu so you can make it again without finding the original post.
 
 ## Sharing and “I want this”
 
@@ -67,7 +67,7 @@ Private notes (for example “I always under-salt this”) should not be shown o
 
 ## What this is not (for now)
 
-Platebook is not a takeout diary, a restaurant collection, or a food journal. Those can wait. The first product is: **dishes you made, recipes you can repeat, and people you cook for telling you what they want.**
+灶记 is not a takeout diary, a restaurant collection, or a food journal. Those can wait. The first product is: **dishes you made, recipes you can repeat, and people you cook for telling you what they want.**
 
 ## MVP
 
