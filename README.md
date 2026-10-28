@@ -115,7 +115,7 @@ The first version should make the cook’s loop usable, then add the family/frie
 ## Project structure
 
 ```text
-platebook/
+cookedbook/
 ├── README.md
 ├── .gitignore
 ├── .env.example

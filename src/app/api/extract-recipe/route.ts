@@ -73,6 +73,9 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 要求：
+- 菜谱可能是中文、英文或其他语言，都要认真识别
+- name、ingredients、steps、tags、notes 保持菜谱原来的语言，不要翻译；原文是繁体中文时转成简体中文
+- category 和 difficulty 不管菜谱是什么语言，都必须从上面给的中文选项里选（比如英文菜谱的 "Easy" 填 "简单"）
 - 如果图片不是菜谱，ingredients 和 steps 都返回空数组
 - 食材和用量写在同一个字符串里，比如 "鸡蛋 2个"
 - 步骤要完整，不要省略

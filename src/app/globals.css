@@ -1,26 +1,134 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 日系绘本风：和纸白底、墨灰粗线、平涂色块，只有浅色 */
+@theme {
+  --color-paper: #FFFCF6;
+  --color-ink: #3E3A39;
+  --color-ink-soft: #8C8582;
+  --color-coral: #F2A497;
+  --color-yamabuki: #F6D27A;
+  --color-mizu: #A8D3E6;
+  --color-wakatake: #B9DAA5;
+  /* 同色系的浅底，用于大面积铺色 */
+  --color-coral-pale: #FCE6E1;
+  --color-yamabuki-pale: #FDF2D4;
+  --color-mizu-pale: #E3F1F7;
+  --color-wakatake-pale: #E8F3E1;
+
+  /* 字母数字用 Huninn，汉字落到简体的 Noto Sans SC */
+  --font-sans: var(--font-huninn), var(--font-noto-sc), "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --radius-book: 1.5rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+@layer components {
+  /* 卡片：粗线框 + 大圆角 + 平涂偏移阴影 */
+  .card {
+    background: #fff;
+    border: 3px solid var(--color-ink);
+    border-radius: var(--radius-book);
+  }
+  .card-pop {
+    box-shadow: 4px 4px 0 var(--color-ink);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 3px solid var(--color-ink);
+    border-radius: 9999px;
+    padding: 0.7rem 1.4rem;
+    font-size: 1rem;
+    color: var(--color-ink);
+    background: #fff;
+    box-shadow: 3px 3px 0 var(--color-ink);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn:active:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--color-ink);
+  }
+  .btn:disabled {
+    opacity: 0.55;
+  }
+  .btn-coral { background: var(--color-coral); }
+  .btn-yamabuki { background: var(--color-yamabuki); }
+  .btn-mizu { background: var(--color-mizu); }
+  .btn-wakatake { background: var(--color-wakatake); }
+  .btn-ghost {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .field {
+    width: 100%;
+    background: #fff;
+    border: 3px solid var(--color-ink);
+    border-radius: 1rem;
+    padding: 0.7rem 1rem;
+    color: var(--color-ink);
+    font-size: 1rem;
+  }
+  .field::placeholder {
+    color: var(--color-ink-soft);
+    opacity: 0.7;
+  }
+  .field:focus {
+    outline: none;
+    background: var(--color-yamabuki-pale);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 2.5px solid var(--color-ink);
+    border-radius: 9999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.9rem;
+    background: #fff;
+    white-space: nowrap;
+  }
+  .chip-on {
+    background: var(--color-yamabuki);
+  }
+
+  .label {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+  }
+  .hint {
+    font-size: 0.8rem;
+    color: var(--color-ink-soft);
+  }
+
+  /* 小标题色块，像贴纸 */
+  .sticker {
+    display: inline-block;
+    border: 2.5px solid var(--color-ink);
+    border-radius: 9999px;
+    padding: 0.1rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
 }
