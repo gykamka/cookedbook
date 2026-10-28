@@ -2,33 +2,90 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import { DEFAULT_CATEGORIES, useLang } from '@/lib/i18n'
-import { LangSwitch, Stars } from '@/components/ui'
+import { createClient, describeError } from '@/lib/supabase'
+import { useLang } from '@/lib/i18n'
 import {
-  CategoryArt, categoryTint, PlusIcon, SearchIcon, Onigiri,
+  buildBook, bookCategories, pageOfChapter, pageOfDish,
+  recallPage, rememberPage, takeOpenDish,
+} from '@/lib/book'
+import { LangSwitch, Stars } from '@/components/ui'
+import Book, { PageSheet, useBookFlip } from '@/components/Book'
+import DishPageContent from '@/components/DishPageContent'
+import {
+  CategoryArt, categoryTint, ClayPot, PlusIcon, SearchIcon, Onigiri,
 } from '@/components/Illustrations'
-import type { Dish } from '@/types'
+import Plate, { plateVariant } from '@/components/Plate'
+import type { Dish, DishImage } from '@/types'
 
-const ALL = '__all__'
+// 盘子里/目录缩略图：有照片用照片，没有就用分类插图
+function DishThumb({ dish }: { dish: Pick<Dish, 'name' | 'category' | 'image_url'> }) {
+  return dish.image_url ? (
+    <img src={dish.image_url} alt={dish.name} className="w-full h-full object-cover" />
+  ) : (
+    <span
+      className="w-full h-full flex items-center justify-center"
+      style={{ background: categoryTint(dish.category) }}
+    >
+      <CategoryArt category={dish.category} className="w-3/4 h-3/4" />
+    </span>
+  )
+}
+
+// 封面上的小贴纸装饰
+function Sparkle({ className, color }: { className: string; color: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`absolute ${className}`} aria-hidden="true">
+      <path
+        d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
+        fill={color} stroke="#3E3A39" strokeWidth={2} strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
 
 export default function MenuPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { t, categoryLabel } = useLang()
+  const { t, lang, categoryLabel } = useLang()
   const [dishes, setDishes] = useState<Dish[]>([])
+  const [photos, setPhotos] = useState<Record<string, string[]>>({})
+  const [photoError, setPhotoError] = useState('')
   const [loading, setLoading] = useState(true)
   const [menuName, setMenuName] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [query, setQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState(ALL)
 
-  async function loadDishes() {
-    const { data } = await supabase
-      .from('dishes').select('*').order('created_at', { ascending: false })
-    if (data) setDishes(data)
+  const pages = useMemo(() => buildBook(dishes), [dishes])
+  const categories = useMemo(() => bookCategories(dishes), [dishes])
+  const { page, flip, flipTo, jumpTo, endFlip } = useBookFlip(recallPage(), pages.length)
+  const current = Math.min(page, pages.length - 1)
+
+  async function loadBook() {
+    const [{ data: dishData }, { data: imageData, error: imageError }] = await Promise.all([
+      supabase.from('dishes').select('*'),
+      supabase.from('dish_images').select('*').order('sort_order', { ascending: true }),
+    ])
+    const loaded: Dish[] = dishData ?? []
+    setDishes(loaded)
+
+    if (imageError) {
+      console.error('读取照片失败: ' + describeError(imageError))
+      setPhotoError(t.photosLoadFailed + describeError(imageError))
+    }
+    const byDish: Record<string, string[]> = {}
+    for (const img of (imageData ?? []) as DishImage[]) {
+      (byDish[String(img.dish_id)] ??= []).push(img.url)
+    }
+    setPhotos(byDish)
     setLoading(false)
+
+    // 刚保存完一道菜，直接翻到那一页
+    const openId = takeOpenDish()
+    if (openId) {
+      const n = pageOfDish(buildBook(loaded), openId)
+      if (n > 0) jumpTo(n)
+    }
   }
 
   useEffect(() => {
@@ -36,9 +93,11 @@ export default function MenuPage() {
       if (!data.user) { router.push('/login'); return }
       const saved = data.user.user_metadata?.menu_name
       if (saved) setMenuName(saved)
-      loadDishes()
+      loadBook()
     })
   }, [])
+
+  useEffect(() => { rememberPage(current) }, [current])
 
   async function saveMenuName() {
     const val = tempName.trim()
@@ -53,169 +112,253 @@ export default function MenuPage() {
     router.push('/login')
   }
 
-  // 有菜的分类才出现在筛选栏，默认分类排前面
-  const categories = useMemo(() => {
-    const used = new Set(dishes.map(d => d.category || ''))
-    const custom = [...used].filter(c => c && !DEFAULT_CATEGORIES.includes(c))
-    const ordered = [...DEFAULT_CATEGORIES.filter(c => used.has(c)), ...custom]
-    if (used.has('')) ordered.push('')
-    return ordered
-  }, [dishes])
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return dishes.filter(d => {
-      if (activeCategory !== ALL && (d.category || '') !== activeCategory) return false
-      if (!q) return true
-      return [d.name, d.ingredients, d.tags, d.notes]
-        .some(field => field?.toLowerCase().includes(q))
-    })
-  }, [dishes, query, activeCategory])
-
-  const grouped = useMemo(() => {
-    const groups = new Map<string, Dish[]>()
-    for (const cat of categories) groups.set(cat, [])
-    for (const d of filtered) groups.get(d.category || '')?.push(d)
-    return [...groups].filter(([, items]) => items.length > 0)
-  }, [filtered, categories])
+  // 搜索只影响目录里显示哪些菜
+  const q = query.trim().toLowerCase()
+  const matches = (d: Dish) =>
+    !q || [d.name, d.ingredients, d.tags, d.notes].some(f => f?.toLowerCase().includes(q))
 
   const label = (cat: string) => (cat ? categoryLabel(cat) : t.uncategorized)
+  const currentPage = pages[current]
+  const currentCategory = currentPage.kind === 'chapter' || currentPage.kind === 'dish' ? currentPage.category : null
+
+  const tabs = [
+    { key: '__toc__', label: t.contents, current: currentPage.kind === 'toc', onClick: () => flipTo(1) },
+    ...categories.map(cat => ({
+      key: cat || '__none__',
+      label: label(cat),
+      current: currentCategory === cat,
+      onClick: () => flipTo(pageOfChapter(pages, cat)),
+    })),
+  ]
+
+  function renderCover() {
+    return (
+      <div className="book-sheet book-cover">
+        {/* 书脊那一条深一点 */}
+        <div className="absolute left-0 top-0 bottom-0 w-3 bg-ink/15" />
+        <Sparkle className="w-7 h-7 top-8 right-9" color="#F6D27A" />
+        <Sparkle className="w-5 h-5 top-20 left-10" color="#FBF2DC" />
+        <Sparkle className="w-6 h-6 bottom-28 right-12" color="#A8D3E6" />
+        <span className="absolute bottom-16 left-12 w-4 h-4 rounded-full bg-wakatake border-2 border-ink" />
+
+        <div className="relative flex-1 flex flex-col items-center justify-center px-8 text-center">
+          {/* 奶油色标签，上面贴一条纸胶带 */}
+          <div className="relative bg-cream border-[3px] border-ink rounded-2xl px-7 pt-6 pb-5 w-full max-w-[15rem]">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 -rotate-6 w-20 h-6 bg-mizu/80 border-2 border-ink/60" />
+            <ClayPot size={84} className="mx-auto" />
+            <h1 className="text-4xl tracking-[0.3em] pl-[0.3em] mt-2">灶记</h1>
+            <p className="text-ink-soft tracking-wider">CookedBook</p>
+          </div>
+
+          {/* 自定义的菜单名 */}
+          <div className="mt-7">
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={tempName}
+                  onChange={e => setTempName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveMenuName()}
+                  autoFocus
+                  className="field text-center text-lg py-1.5 w-44"
+                />
+                <button type="button" onClick={saveMenuName} className="btn btn-yamabuki px-3 py-1.5">{t.ok}</button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setTempName(menuName || t.myMenu); setEditingName(true) }}
+                className="cursor-pen"
+                title={t.tapToRename}
+              >
+                <span className="sticker bg-yamabuki text-xl px-5 py-1 tracking-widest">
+                  {menuName || t.myMenu}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="relative flex justify-end px-6 pb-6">
+          <button type="button" onClick={() => flipTo(1)} className="btn bg-cream py-1.5 px-5">
+            {t.openBook} ›
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  function renderContents() {
+    const sections = categories
+      .map(cat => ({
+        cat,
+        items: pages.flatMap(p => (p.kind === 'chapter' && p.category === cat ? p.dishes : [])).filter(matches),
+      }))
+      .filter(s => !q || s.items.length > 0)
+
+    return (
+      <div>
+        <h2 className={`text-2xl text-center ${lang === 'zh' ? 'tracking-[0.5em] pl-[0.5em]' : 'tracking-wide'}`}>{t.contents}</h2>
+        <p className="hint text-center mt-1">{menuName || t.myMenu}</p>
+
+        {dishes.length === 0 ? (
+          <div className="flex flex-col items-center mt-10 gap-3 text-center">
+            <Onigiri size={100} />
+            <p className="text-lg mt-1">{t.emptyTitle}</p>
+            <p className="hint">{t.emptyHint}</p>
+          </div>
+        ) : sections.length === 0 ? (
+          <p className="text-center text-ink-soft mt-10">{t.noMatch}</p>
+        ) : null}
+
+        <div className="mt-6 space-y-7">
+          {sections.map(({ cat, items }) => {
+            const chapterPage = pageOfChapter(pages, cat)
+            return (
+              <section key={cat || '__none__'}>
+                <button type="button" onClick={() => flipTo(chapterPage)} className="w-full flex items-end text-left">
+                  <CategoryArt category={cat} size={32} className="flex-shrink-0 mr-1.5" />
+                  <span className="text-xl flex-shrink-0">{label(cat)}</span>
+                  <span className="hint ml-1.5 mb-0.5 flex-shrink-0">{items.length}</span>
+                  <span className="leader" />
+                  <span className="flex-shrink-0">{chapterPage}</span>
+                </button>
+
+                <ul className="mt-3 space-y-2.5 pl-9 text-[15px]">
+                  {items.map(dish => (
+                    <li key={dish.id}>
+                      <button
+                        type="button"
+                        onClick={() => flipTo(pageOfDish(pages, dish.id))}
+                        className="w-full flex items-end text-left"
+                      >
+                        <span className="w-7 h-7 rounded-full overflow-hidden border-2 border-ink flex-shrink-0 mr-2 self-center">
+                          <DishThumb dish={dish} />
+                        </span>
+                        <span className="truncate min-w-0">{dish.name}</span>
+                        <span className="leader" />
+                        <span className="flex-shrink-0 text-ink-soft">{pageOfDish(pages, dish.id)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  function renderChapter(cat: string, items: Dish[]) {
+    return (
+      <div>
+        <div className="flex flex-col items-center text-center">
+          <CategoryArt category={cat} size={60} />
+          <p className="hint mt-1">{t.chapterN(categories.indexOf(cat) + 1)}</p>
+          <h2 className="text-2xl tracking-widest">{label(cat)}</h2>
+          <p className="hint mt-0.5">{t.dishCount(items.length)}</p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6 mt-6">
+          {items.map(dish => (
+            <button
+              key={dish.id}
+              type="button"
+              onClick={() => flipTo(pageOfDish(pages, dish.id))}
+              className="flex flex-col items-center text-center active:scale-95 transition-transform"
+            >
+              <Plate variant={plateVariant(dish.id)}>
+                <DishThumb dish={dish} />
+              </Plate>
+              <p className="mt-1.5 leading-snug line-clamp-2 break-all">{dish.name}</p>
+              <span className="mt-1"><Stars n={dish.rating} size={12} /></span>
+              <span className="hint mt-0.5">{t.pageShort(pageOfDish(pages, dish.id))}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  function renderPage(i: number) {
+    const p = pages[i]
+    if (!p) return null
+    if (p.kind === 'cover') return renderCover()
+
+    let content: React.ReactNode
+    if (p.kind === 'toc') {
+      content = renderContents()
+    } else if (p.kind === 'chapter') {
+      content = renderChapter(p.category, p.dishes)
+    } else {
+      const fromTable = photos[String(p.dish.id)]
+      content = (
+        <DishPageContent
+          dish={p.dish}
+          photos={fromTable?.length ? fromTable : p.dish.image_url ? [p.dish.image_url] : []}
+          onEdit={() => { rememberPage(i); router.push(`/dish/${p.dish.id}`) }}
+        />
+      )
+    }
+
+    return (
+      <PageSheet
+        number={i}
+        onPrev={() => flipTo(i - 1)}
+        onNext={i < pages.length - 1 ? () => flipTo(i + 1) : undefined}
+        onClose={() => flipTo(0)}
+      >
+        {content}
+      </PageSheet>
+    )
+  }
 
   return (
-    <main className="min-h-screen pb-32">
-      <div className="max-w-lg mx-auto px-5">
+    <main className="min-h-dvh overflow-x-clip pb-8">
+      <div className="max-w-lg mx-auto px-4">
 
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between gap-2 h-14">
           <LangSwitch />
-          <button onClick={handleSignOut} className="text-sm text-ink-soft underline underline-offset-4">
+          <button type="button" onClick={() => router.push('/add-dish')} className="btn btn-coral py-1 px-3.5 text-sm">
+            <PlusIcon size={16} /> {t.addShort}
+          </button>
+          <button type="button" onClick={handleSignOut} className="text-sm text-ink-soft underline underline-offset-4">
             {t.signOut}
           </button>
         </div>
 
-        {/* 菜单名，点一下可以改 */}
-        <div className="flex flex-col items-center pt-6 pb-5">
-          {editingName ? (
-            <div className="flex items-center gap-2 w-full max-w-xs">
-              <input
-                value={tempName}
-                onChange={e => setTempName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && saveMenuName()}
-                autoFocus
-                className="field text-center text-xl"
-              />
-              <button onClick={saveMenuName} className="btn btn-yamabuki px-4">{t.ok}</button>
-              <button onClick={() => setEditingName(false)} className="text-ink-soft px-1" aria-label={t.cancel}>✕</button>
-            </div>
-          ) : (
-            <button
-              onClick={() => { setTempName(menuName || t.myMenu); setEditingName(true) }}
-              className="flex flex-col items-center"
-            >
-              <span className="sticker bg-coral text-3xl px-6 py-1 tracking-widest">
-                {menuName || t.myMenu}
-              </span>
-              <span className="hint mt-2">{t.tapToRename}</span>
-            </button>
-          )}
-        </div>
-
         {loading ? (
           <p className="text-center text-ink-soft mt-20">{t.loading}</p>
-        ) : dishes.length === 0 ? (
-          <div className="flex flex-col items-center mt-16 gap-3 text-center px-8">
-            <Onigiri size={120} />
-            <p className="text-xl mt-2">{t.emptyTitle}</p>
-            <p className="hint">{t.emptyHint}</p>
-          </div>
         ) : (
           <>
-            {/* 搜索 */}
-            <label className="relative block">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2">
-                <SearchIcon />
+            <Book
+              className="h-[clamp(30rem,calc(100dvh-8.5rem),46rem)]"
+              page={current}
+              flip={flip}
+              onFlipEnd={endFlip}
+              renderPage={renderPage}
+              tabs={tabs}
+              onSwipe={forward => flipTo(current + (forward ? 1 : -1))}
+            />
+
+            {/* 书下面的小搜索框 */}
+            <label className="relative block w-56 mx-auto mt-6">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                <SearchIcon size={16} />
               </span>
               <input
                 type="search"
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={e => { setQuery(e.target.value); if (current !== 1) flipTo(1) }}
                 placeholder={t.searchPlaceholder}
-                className="field rounded-full pl-12"
+                className="field rounded-full text-sm py-1.5 pl-9 pr-3 border-[2.5px]"
               />
             </label>
 
-            {/* 分类筛选 */}
-            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 py-4">
-              {[ALL, ...categories].map(cat => (
-                <button
-                  key={cat || '__none__'}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`chip ${activeCategory === cat ? 'chip-on' : ''}`}
-                >
-                  {cat === ALL ? t.all : label(cat)}
-                </button>
-              ))}
-            </div>
-
-            {filtered.length === 0 ? (
-              <p className="text-center text-ink-soft mt-12">{t.noMatch}</p>
-            ) : (
-              <div className="space-y-8 mt-2">
-                {grouped.map(([cat, items]) => (
-                  <section key={cat || '__none__'}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <CategoryArt category={cat} size={36} />
-                      <h2 className="text-lg">{label(cat)}</h2>
-                      <span className="hint">{items.length}</span>
-                      <span className="flex-1 border-b-[2.5px] border-dashed border-ink/30 ml-1" />
-                    </div>
-
-                    <div className="space-y-3">
-                      {items.map(dish => (
-                        <button
-                          key={dish.id}
-                          onClick={() => router.push(`/dish/${dish.id}`)}
-                          className="card w-full flex items-center gap-3 p-3 text-left active:translate-x-0.5 active:translate-y-0.5 transition-transform"
-                        >
-                          <div
-                            className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center border-[2.5px] border-ink"
-                            style={{ background: categoryTint(dish.category) }}
-                          >
-                            {dish.image_url
-                              ? <img src={dish.image_url} alt={dish.name} className="w-full h-full object-cover" />
-                              : <CategoryArt category={dish.category} size={46} />
-                            }
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-lg leading-snug truncate">{dish.name}</p>
-                            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
-                              <Stars n={dish.rating} size={14} />
-                              {dish.tags && dish.tags.split(',').filter(Boolean).slice(0, 2).map(tag => (
-                                <span key={tag} className="text-xs text-ink-soft">#{tag.trim()}</span>
-                              ))}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            )}
-
-            <p className="text-center hint mt-12">── {t.menuFooter} ──</p>
+            {photoError && <p className="sticker bg-coral-pale text-sm mt-4 block">{photoError}</p>}
           </>
         )}
       </div>
-
-      {/* 添加按钮 */}
-      <button
-        onClick={() => router.push('/add-dish')}
-        className="btn btn-coral fixed bottom-6 right-5 w-16 h-16 p-0"
-        aria-label={t.addDish}
-      >
-        <PlusIcon size={30} />
-      </button>
     </main>
   )
 }

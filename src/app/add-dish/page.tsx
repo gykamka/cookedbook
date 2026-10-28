@@ -3,11 +3,13 @@
 import ImageUploader, { type UploadedImage } from '@/components/ImageUploader'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import { useLang } from '@/lib/i18n'
+import { createClient, describeError } from '@/lib/supabase'
+import { DEFAULT_CATEGORIES, useLang } from '@/lib/i18n'
 import { StarPicker, TopBar } from '@/components/ui'
 import { CategoryPicker, TagInput } from '@/components/DishFields'
-import { SparkleIcon } from '@/components/Illustrations'
+import RecipeFields, { cleanLines, type RecipeValue } from '@/components/RecipeFields'
+import { openDishNext } from '@/lib/book'
+import type { ExtractedRecipe } from '@/types'
 
 export default function AddDishPage() {
   const router = useRouter()
@@ -19,18 +21,28 @@ export default function AddDishPage() {
   const [notes, setNotes] = useState('')
   const [rating, setRating] = useState(0)
   const [tags, setTags] = useState<string[]>([])
+  const [recipe, setRecipe] = useState<RecipeValue>({
+    cookingTime: '', difficulty: '', ingredients: '', steps: '',
+  })
   const [loading, setLoading] = useState(false)
   const [images, setImages] = useState<UploadedImage[]>([])
   const [error, setError] = useState('')
 
-  // 保存菜到数据库，返回 dish id
-  async function saveDish(): Promise<string | null> {
-    if (!name.trim()) { setError(t.nameRequired); return null }
+  // AI 识别结果：只填用户还没填的地方，标签合并
+  function handleExtracted(r: ExtractedRecipe) {
+    if (!name.trim() && r.name) setName(r.name)
+    if (!category && DEFAULT_CATEGORIES.includes(r.category)) setCategory(r.category)
+    if (r.tags?.length) setTags(prev => [...new Set([...prev, ...r.tags])])
+    if (!notes.trim() && r.notes) setNotes(r.notes)
+  }
+
+  async function handleSave() {
+    if (!name.trim()) { setError(t.nameRequired); return }
     setLoading(true)
     setError('')
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return null }
+    if (!user) { router.push('/login'); return }
 
     const { data: dish, error: dishError } = await supabase
       .from('dishes')
@@ -42,6 +54,10 @@ export default function AddDishPage() {
         rating: rating || null,
         tags: tags.length > 0 ? tags.join(',') : null,
         image_url: images[0]?.url ?? null,
+        cooking_time: recipe.cookingTime.trim() || null,
+        difficulty: recipe.difficulty || null,
+        ingredients: cleanLines(recipe.ingredients) || null,
+        steps: cleanLines(recipe.steps) || null,
       })
       .select()
       .single()
@@ -49,33 +65,29 @@ export default function AddDishPage() {
     if (dishError || !dish) {
       setError(t.saveFailed)
       setLoading(false)
-      return null
+      return
     }
 
     if (images.length > 0) {
-      await supabase.from('dish_images').insert(
+      const { error: imgError } = await supabase.from('dish_images').insert(
         images.map((img, i) => ({
           dish_id: dish.id,
           url: img.url,
           path: img.path,
-          order: i,
+          sort_order: i,
         }))
       )
+      // 菜已经存好了，照片没存进去就去编辑页，把原因显示出来再重试
+      if (imgError) {
+        console.error('保存照片失败: ' + describeError(imgError))
+        setError(t.photosSaveFailed + describeError(imgError))
+        setLoading(false)
+        return
+      }
     }
 
-    return dish.id
-  }
-
-  // 保存并跳到 AI 识别菜谱页
-  async function handleSaveAndExtract() {
-    const id = await saveDish()
-    if (id) router.push(`/extract-recipe?dishId=${id}`)
-  }
-
-  // 直接保存，回菜单
-  async function handleSaveOnly() {
-    const id = await saveDish()
-    if (id) router.push('/menu')
+    openDishNext(dish.id)
+    router.push('/menu')
   }
 
   return (
@@ -119,6 +131,10 @@ export default function AddDishPage() {
           <TagInput tags={tags} onChange={setTags} />
         </div>
 
+        <div className="card p-5">
+          <RecipeFields value={recipe} onChange={setRecipe} onExtracted={handleExtracted} />
+        </div>
+
         <div>
           <label className="label">{t.notes}</label>
           <textarea
@@ -126,30 +142,20 @@ export default function AddDishPage() {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={3}
-            className="field resize-none"
+            className="field resize-y"
           />
         </div>
 
         {error && <p className="sticker bg-coral-pale">{error}</p>}
 
-        <div className="space-y-4 pt-2">
-          <button
-            type="button"
-            onClick={handleSaveAndExtract}
-            disabled={loading}
-            className="btn btn-coral w-full py-3.5"
-          >
-            {loading ? t.saving : <><SparkleIcon /> {t.saveAndExtract}</>}
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveOnly}
-            disabled={loading}
-            className="btn w-full"
-          >
-            {t.saveOnly}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={loading}
+          className="btn btn-coral w-full py-3.5 text-lg"
+        >
+          {loading ? t.saving : t.save}
+        </button>
       </div>
     </main>
   )
