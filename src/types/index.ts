@@ -1,5 +1,5 @@
 export type Dish = {
-  id: string
+  id: number
   user_id: string
   name: string
   category: string | null
@@ -15,11 +15,11 @@ export type Dish = {
 }
 
 export type DishImage = {
-  id: string
-  dish_id: string
+  id: number
+  dish_id: number
   url: string
   path: string
-  order: number
+  sort_order: number
   created_at: string
 }
 

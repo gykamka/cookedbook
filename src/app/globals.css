@@ -14,6 +14,10 @@
   --color-yamabuki-pale: #FDF2D4;
   --color-mizu-pale: #E3F1F7;
   --color-wakatake-pale: #E8F3E1;
+  /* 菜谱本：复古砖红封面、米黄内页 */
+  --color-brick: #B4573F;
+  --color-cream: #FBF2DC;
+  --color-cream-deep: #F1E1BC;
 
   /* 字母数字用 Huninn，汉字落到简体的 Noto Sans SC */
   --font-sans: var(--font-huninn), var(--font-noto-sc), "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -24,6 +28,24 @@
 html {
   color-scheme: light;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 能点的东西鼠标放上去都变成小手 */
+button:not(:disabled),
+a[href],
+label:has(input[type="checkbox"]),
+input[type="checkbox"],
+input[type="range"],
+select {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* 可以改的文字（比如封面上的菜单名）显示成一支小铅笔 */
+.cursor-pen {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 24 L6 17 L19 4 L24 9 L11 22 Z' fill='%23F6D27A' stroke='%233E3A39' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M16 7 L21 12' stroke='%233E3A39' stroke-width='2'/%3E%3Cpath d='M4 24 L6 17 L11 22 Z' fill='%23F2A497' stroke='%233E3A39' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E") 3 25, pointer;
 }
 
 body {
@@ -124,6 +146,103 @@ body {
     padding: 0.1rem 0.8rem;
     font-size: 0.9rem;
   }
+}
+
+/* ===== 菜谱本 ===== */
+/* 书固定大小，翻页时不变；perspective 给翻页的 3D 感 */
+.book {
+  position: relative;
+  perspective: 1800px;
+}
+
+/* 每一张纸：米黄色，左边粗一点像书脊 */
+.book-sheet {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-cream);
+  border: 3px solid var(--color-ink);
+  border-left-width: 6px;
+  border-radius: 0.4rem 1.25rem 1.25rem 0.4rem;
+  overflow: hidden;
+}
+
+/* 书底下露出的两层纸边 */
+.book-stack {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.4rem 1.25rem 1.25rem 0.4rem;
+  box-shadow:
+    0 5px 0 -1px var(--color-cream-deep), 0 5px 0 2px var(--color-ink),
+    0 10px 0 -1px var(--color-cream-deep), 0 10px 0 2px var(--color-ink);
+}
+
+/* 翻页时下面那页的阴影（透明度由翻页进度控制） */
+.turn-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--color-ink);
+  pointer-events: none;
+  border-radius: 0.4rem 1.25rem 1.25rem 0.4rem;
+}
+
+/* 翻起来的纸背面，比正面深一点的米色 */
+.leaf-back-sheet {
+  background: var(--color-cream-deep);
+}
+
+/* 复古砖红封面，里面一圈缝线 */
+.book-cover {
+  background: var(--color-brick);
+  border-color: var(--color-ink);
+}
+.book-cover::after {
+  content: "";
+  position: absolute;
+  inset: 10px 10px 10px 8px;
+  border: 2.5px dashed color-mix(in srgb, var(--color-cream) 70%, transparent);
+  border-radius: 0.3rem 0.9rem 0.9rem 0.3rem;
+  pointer-events: none;
+}
+
+/* 书右侧的分类标签，竖着写 */
+.book-tab {
+  writing-mode: vertical-rl;
+  letter-spacing: 0.15em;
+  border: 2.5px solid var(--color-ink);
+  border-left: none;
+  border-radius: 0 0.7rem 0.7rem 0;
+  padding: 0.6rem 0.25rem;
+  font-size: 0.85rem;
+  max-height: 7.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: transform 0.15s;
+}
+/* 英文分类名比较长，竖着写会很高：允许折成两行（竖排里就是并排两列），字小一点 */
+.book-tab-en {
+  white-space: normal;
+  letter-spacing: 0.02em;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  max-height: 4.4rem;
+  padding: 0.45rem 0.2rem;
+}
+
+.book-tab[aria-current="true"] {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  transform: translateX(-3px);
+  padding-right: 0.45rem;
+}
+
+/* 目录里菜名和页码之间的点点引线 */
+.leader {
+  flex: 1;
+  min-width: 1rem;
+  margin: 0 0.4rem 0.35rem;
+  border-bottom: 2.5px dotted color-mix(in srgb, var(--color-ink) 35%, transparent);
 }
 
 .no-scrollbar::-webkit-scrollbar {
