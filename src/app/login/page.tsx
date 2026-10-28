@@ -3,10 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { useLang } from '@/lib/i18n'
+import { LangSwitch } from '@/components/ui'
+import { RiceBowl } from '@/components/Illustrations'
 
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useLang()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,23 +18,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  async function handleSubmit() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
     setLoading(true)
     setMessage('')
 
     if (isSignUp) {
       // 注册
       const { error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        setMessage('注册失败：' + error.message)
-      } else {
-        setMessage('注册成功！')
-      }
+      setMessage(error ? t.signUpFailed + error.message : t.signUpOk)
     } else {
       // 登录
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        setMessage('登录失败：' + error.message)
+        setMessage(t.loginFailed + error.message)
       } else {
         router.push('/menu')
       }
@@ -40,55 +41,56 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-amber-50 flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🍜</div>
-          <h1 className="text-2xl font-bold text-amber-900">灶记</h1>
-          <p className="text-amber-600 mt-1">我的菜谱本</p>
+    <main className="min-h-screen flex flex-col px-6">
+      <div className="flex justify-end pt-4">
+        <LangSwitch />
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm mx-auto pb-12">
+        <div className="text-center mb-6">
+          <RiceBowl size={96} className="mx-auto" />
+          <h1 className="text-3xl mt-2 tracking-widest">灶记</h1>
+          <p className="text-ink-soft">CookedBook</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            {isSignUp ? '创建账号' : '登录'}
-          </h2>
+        <form onSubmit={handleSubmit} className="card card-pop w-full p-6 bg-white">
+          <h2 className="text-xl mb-4">{isSignUp ? t.createAccount : t.login}</h2>
 
           <div className="space-y-3">
             <input
               type="email"
-              placeholder="邮箱"
+              placeholder={t.email}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+              autoComplete="email"
+              required
+              className="field"
             />
             <input
               type="password"
-              placeholder="密码"
+              placeholder={t.password}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              required
+              className="field"
             />
           </div>
 
-          {message && (
-            <p className="mt-3 text-sm text-amber-700">{message}</p>
-          )}
+          {message && <p className="mt-3 text-sm">{message}</p>}
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full mt-4 bg-amber-500 text-white py-3 rounded-xl font-medium disabled:opacity-50"
-          >
-            {loading ? '请稍候...' : isSignUp ? '注册' : '登录'}
+          <button type="submit" disabled={loading} className="btn btn-coral w-full mt-5">
+            {loading ? t.pleaseWait : isSignUp ? t.signUp : t.login}
           </button>
 
           <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full mt-3 text-amber-600 text-sm"
+            type="button"
+            onClick={() => { setIsSignUp(!isSignUp); setMessage('') }}
+            className="w-full mt-4 text-sm text-ink-soft underline underline-offset-4"
           >
-            {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
+            {isSignUp ? t.toLogin : t.toSignUp}
           </button>
-        </div>
+        </form>
       </div>
     </main>
   )
