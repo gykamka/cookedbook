@@ -54,7 +54,6 @@ const zh = {
   dishCount: (n: number) => `${n} 道菜`,
   prevPage: '上一页',
   nextPage: '下一页',
-  pageShort: (n: number) => `第 ${n} 页`,
   uncategorized: '未分类',
 
   back: '返回',
@@ -172,7 +171,6 @@ const en: Dict = {
   dishCount: (n: number) => `${n} ${n === 1 ? 'dish' : 'dishes'}`,
   prevPage: 'Previous page',
   nextPage: 'Next page',
-  pageShort: (n: number) => `p. ${n}`,
   uncategorized: 'Other',
 
   back: 'Back',

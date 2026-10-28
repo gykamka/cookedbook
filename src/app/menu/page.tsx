@@ -272,7 +272,6 @@ export default function MenuPage() {
               </Plate>
               <p className="mt-1.5 leading-snug line-clamp-2 break-all">{dish.name}</p>
               <span className="mt-1"><Stars n={dish.rating} size={12} /></span>
-              <span className="hint mt-0.5">{t.pageShort(pageOfDish(pages, dish.id))}</span>
             </button>
           ))}
         </div>

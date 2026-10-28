@@ -22,6 +22,13 @@ type Props = {
 
 export type { UploadedImage }
 
+// 随机文件名。crypto.randomUUID 只在 https / localhost 下才有，手机用局域网 http 打开时没有，
+// 所以用到处都能用的 getRandomValues 自己拼一个
+function randomId() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+}
+
 // 正在裁剪的对象：刚选的新文件（排队一张张裁），或者点开已上传的某一张重新裁
 type Editing =
   | { kind: 'new'; files: File[]; index: number; src: string }
@@ -34,7 +41,7 @@ export default function ImageUploader({ images, onChange, maxImages = 9, keepPat
   const [editing, setEditing] = useState<Editing | null>(null)
 
   async function upload(file: Blob): Promise<UploadedImage | null> {
-    const path = `${crypto.randomUUID()}.jpg`
+    const path = `${randomId()}.jpg`
     const { error } = await supabase.storage
       .from('dish-images')
       .upload(path, file, { cacheControl: '3600', upsert: false, contentType: 'image/jpeg' })
