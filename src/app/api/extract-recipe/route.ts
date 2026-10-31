@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 
@@ -38,6 +39,17 @@ function cleanJsonText(text: string): string {
 
 export async function POST(req: Request): Promise<Response> {
   try {
+    // 网站公开后只让登录的人用，免得别人刷掉 Gemini 额度
+    const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data: { user } } = token ? await supabase.auth.getUser(token) : { data: { user: null } }
+    if (!user) {
+      return NextResponse.json({ error: '请先登录' }, { status: 401 })
+    }
+
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY
 
     if (!apiKey) {
