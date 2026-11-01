@@ -16,8 +16,48 @@ export type RecipeValue = {
 
 type ScreenshotItem = {
   preview: string
-  base64: string
-  mimeType: string
+}
+
+// Vercel 一次请求最多收 4.5MB。原图直接发会超，所以发之前在手机上缩小、转成 JPEG。
+// 先用比较清楚的尺寸，所有截图加起来还太大就一档档缩小。
+const PAYLOAD_BUDGET = 3_500_000
+const SHRINK_STEPS = [
+  { width: 1280, pixels: 4_000_000, quality: 0.85 },
+  { width: 1080, pixels: 3_000_000, quality: 0.75 },
+  { width: 900, pixels: 2_000_000, quality: 0.65 },
+  { width: 720, pixels: 1_500_000, quality: 0.6 },
+]
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+async function shrinkToBase64(src: string, step: (typeof SHRINK_STEPS)[number]) {
+  const img = await loadImage(src)
+  const w = img.naturalWidth
+  const h = img.naturalHeight
+  const scale = Math.min(1, step.width / w, Math.sqrt(step.pixels / (w * h)))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(w * scale)
+  canvas.height = Math.round(h * scale)
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', step.quality).split(',')[1]
+}
+
+async function shrinkAll(items: ScreenshotItem[]) {
+  for (const step of SHRINK_STEPS) {
+    const encoded = await Promise.all(items.map(item => shrinkToBase64(item.preview, step)))
+    if (encoded.reduce((sum, b) => sum + b.length, 0) <= PAYLOAD_BUDGET) return encoded
+  }
+  return null
 }
 
 // 上传菜谱截图，让 AI 识别，结果交给父组件填进表单
@@ -34,18 +74,8 @@ function AiExtractPanel({ onResult }: { onResult: (r: ExtractedRecipe) => void }
     if (!files) return
     setError('')
     setDone(false)
-    Array.from(files).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = ev => {
-        const result = ev.target?.result as string
-        setImages(prev => [...prev, {
-          preview: URL.createObjectURL(file),
-          base64: result.split(',')[1],
-          mimeType: file.type || 'image/jpeg',
-        }])
-      }
-      reader.readAsDataURL(file)
-    })
+    const added = Array.from(files).map(file => ({ preview: URL.createObjectURL(file) }))
+    setImages(prev => [...prev, ...added])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -58,6 +88,11 @@ function AiExtractPanel({ onResult }: { onResult: (r: ExtractedRecipe) => void }
     setExtracting(true)
     setError('')
     try {
+      const encoded = await shrinkAll(images)
+      if (!encoded) {
+        setError(t.screenshotsTooBig)
+        return
+      }
       // 带上登录凭证：网站公开后，只有登录的人才能用 AI（不然谁都能花你的 Gemini 额度）
       const { data: { session } } = await createClient().auth.getSession()
       const res = await fetch('/api/extract-recipe', {
@@ -67,7 +102,7 @@ function AiExtractPanel({ onResult }: { onResult: (r: ExtractedRecipe) => void }
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
         body: JSON.stringify({
-          images: images.map(img => ({ imageBase64: img.base64, mimeType: img.mimeType })),
+          images: encoded.map(imageBase64 => ({ imageBase64, mimeType: 'image/jpeg' })),
         }),
       })
       const text = await res.text()

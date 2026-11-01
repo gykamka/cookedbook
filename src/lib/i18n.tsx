@@ -113,6 +113,7 @@ const zh = {
   oneStepPerLine: '（每行一个步骤）',
   tips: '小贴士',
   notJson: '接口返回的不是 JSON：',
+  screenshotsTooBig: '截图太多太大了，少选几张再试试',
   apiError: '接口错误：',
   networkError: '网络错误，请重试',
 
@@ -230,6 +231,7 @@ const en: Dict = {
   oneStepPerLine: '(one step per line)',
   tips: 'Tips',
   notJson: 'The server did not return JSON: ',
+  screenshotsTooBig: 'Too many or too large screenshots — try fewer',
   apiError: 'Server error: ',
   networkError: 'Network error, please try again',
 
