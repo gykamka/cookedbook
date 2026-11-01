@@ -313,7 +313,7 @@ export default function MenuPage() {
   }
 
   return (
-    <main className="min-h-dvh overflow-x-clip pb-8">
+    <main className="min-h-dvh overflow-x-clip pb-6">
       <div className="max-w-lg mx-auto px-4">
 
         <div className="flex items-center justify-between gap-2 h-14">
@@ -331,7 +331,7 @@ export default function MenuPage() {
         ) : (
           <>
             <Book
-              className="h-[clamp(30rem,calc(100dvh-8.5rem),46rem)]"
+              className="h-[clamp(26rem,calc(100dvh-10.5rem),46rem)]"
               page={current}
               flip={flip}
               onFlipEnd={endFlip}
@@ -341,7 +341,7 @@ export default function MenuPage() {
             />
 
             {/* 书下面的小搜索框 */}
-            <label className="relative block w-56 mx-auto mt-6">
+            <label className="relative block w-56 mx-auto mt-4">
               <span className="absolute left-3 top-1/2 -translate-y-1/2">
                 <SearchIcon size={16} />
               </span>
