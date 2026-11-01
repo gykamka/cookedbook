@@ -34,30 +34,31 @@ export default function DishPageContent({ dish, photos, onEdit }: {
 
   return (
     <div>
-      <div className="flex justify-end mb-3">
-        <button type="button" onClick={onEdit} className="chip bg-yamabuki text-sm">
+      {/* 第一行：菜名 + 编辑 */}
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-2xl tracking-wider leading-snug pt-0.5">{dish.name}</h1>
+        <button type="button" onClick={onEdit} className="chip bg-yamabuki text-sm flex-shrink-0">
           ✎ {t.edit}
         </button>
       </div>
 
-      {/* 封面：照片（可左右滑）或分类插图，占页面宽度的三分之二左右，留出下面的菜谱 */}
-      <div data-no-flip className="w-[68%] max-w-56 mx-auto">
-        {photos.length > 0 ? (
-          <Gallery urls={photos} alt={dish.name} />
-        ) : (
-          <div
-            className="card aspect-square flex items-center justify-center"
-            style={{ background: categoryTint(dish.category) }}
-          >
-            <CategoryArt category={dish.category} size={90} />
-          </div>
-        )}
-      </div>
+      {/* 第二行：左边照片（可左右滑）或分类插图，右边竖着放评分、时间、难度、标签，省下上下的地方 */}
+      <div className="flex items-center gap-4 mt-3">
+        <div data-no-flip className="w-[58%] max-w-56 flex-shrink-0">
+          {photos.length > 0 ? (
+            <Gallery urls={photos} alt={dish.name} />
+          ) : (
+            <div
+              className="card aspect-square flex items-center justify-center"
+              style={{ background: categoryTint(dish.category) }}
+            >
+              <CategoryArt category={dish.category} size={80} />
+            </div>
+          )}
+        </div>
 
-      <div className="text-center pt-5">
-        <h1 className="text-2xl tracking-wider leading-snug">{dish.name}</h1>
-        <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
-          {dish.rating ? <Stars n={dish.rating} size={16} /> : null}
+        <div className="flex flex-col items-start gap-2.5 min-w-0">
+          {dish.rating ? <Stars n={dish.rating} size={15} /> : null}
           {dish.cooking_time && (
             <span className="chip bg-mizu-pale text-sm">
               <ClockIcon /> {dish.cooking_time}
@@ -66,14 +67,14 @@ export default function DishPageContent({ dish, photos, onEdit }: {
           {dish.difficulty && (
             <span className="chip bg-wakatake-pale text-sm">{difficultyLabel(dish.difficulty)}</span>
           )}
+          {tagList.length > 0 && (
+            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+              {tagList.map(tag => (
+                <span key={tag} className="text-sm text-ink-soft">#{tag.trim()}</span>
+              ))}
+            </div>
+          )}
         </div>
-        {tagList.length > 0 && (
-          <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 mt-3">
-            {tagList.map(tag => (
-              <span key={tag} className="text-sm text-ink-soft">#{tag.trim()}</span>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="mt-7 space-y-7">
