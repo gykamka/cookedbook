@@ -312,9 +312,10 @@ export default function MenuPage() {
     )
   }
 
-  // pt-7：iPhone Safari 会把状态栏下面一条虚化，顶栏按钮要躲开它；书相应地矮一点，整页正好一屏
+  // 手机上：iPhone Safari 会把状态栏下面一条虚化，顶栏往下挪躲开它；
+  // 底部还有 Safari 的浮动工具栏，所以书要矮不少，整页才能一屏放下。电脑上照旧
   return (
-    <main className="min-h-dvh overflow-x-clip pt-7 pb-6">
+    <main className="min-h-dvh overflow-x-clip pt-12 sm:pt-6 pb-6">
       <div className="max-w-lg mx-auto px-4">
 
         <div className="flex items-center justify-between gap-2 h-14">
@@ -332,7 +333,7 @@ export default function MenuPage() {
         ) : (
           <>
             <Book
-              className="h-[clamp(26rem,calc(100dvh-12.5rem),46rem)]"
+              className="h-[clamp(24rem,calc(100dvh-16rem),40rem)] sm:h-[clamp(26rem,calc(100dvh-12.5rem),46rem)]"
               page={current}
               flip={flip}
               onFlipEnd={endFlip}
