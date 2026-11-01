@@ -312,11 +312,11 @@ export default function MenuPage() {
     )
   }
 
-  // 手机上：iPhone Safari 会把状态栏下面一条虚化，顶栏往下挪躲开它；
-  // 底部还有 Safari 的浮动工具栏，所以书要矮不少，整页才能一屏放下。电脑上照旧
+  // 整页正好一屏：顶栏在上，搜索框贴底，书把中间的空间撑满，所以不管手机多高都不留空。
+  // 手机上 iPhone Safari 会把状态栏下面一条虚化，顶栏往下挪躲开它
   return (
-    <main className="min-h-dvh overflow-x-clip pt-12 sm:pt-6 pb-6">
-      <div className="max-w-lg mx-auto px-4">
+    <main className="h-dvh flex flex-col overflow-x-clip pt-12 sm:pt-6 pb-4">
+      <div className="max-w-lg w-full mx-auto px-4 flex-1 min-h-0 flex flex-col">
 
         <div className="flex items-center justify-between gap-2 h-14">
           <LangSwitch />
@@ -333,7 +333,7 @@ export default function MenuPage() {
         ) : (
           <>
             <Book
-              className="h-[clamp(24rem,calc(100dvh-16rem),40rem)] sm:h-[clamp(26rem,calc(100dvh-12.5rem),46rem)]"
+              className="flex-1 min-h-[22rem] max-h-[46rem]"
               page={current}
               flip={flip}
               onFlipEnd={endFlip}
@@ -342,8 +342,10 @@ export default function MenuPage() {
               onSwipe={forward => flipTo(current + (forward ? 1 : -1))}
             />
 
+            {photoError && <p className="sticker bg-coral-pale text-sm mt-3 block">{photoError}</p>}
+
             {/* 书下面的小搜索框 */}
-            <label className="relative block w-56 mx-auto mt-4">
+            <label className="relative block w-56 mx-auto mt-4 flex-shrink-0">
               <span className="absolute left-3 top-1/2 -translate-y-1/2">
                 <SearchIcon size={16} />
               </span>
@@ -355,8 +357,6 @@ export default function MenuPage() {
                 className="field rounded-full text-sm py-1.5 pl-9 pr-3 border-[2.5px]"
               />
             </label>
-
-            {photoError && <p className="sticker bg-coral-pale text-sm mt-4 block">{photoError}</p>}
           </>
         )}
       </div>
