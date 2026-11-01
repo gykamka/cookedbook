@@ -233,7 +233,7 @@ export default function EditDishPage() {
       </div>
 
       {/* 底部固定保存按钮 */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-paper border-t-[3px] border-ink">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-paper border-t-[3px] border-ink pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-lg mx-auto px-5 py-3 flex gap-3">
           <button type="button" onClick={handleCancel} className="btn flex-1">
             {t.cancel}
