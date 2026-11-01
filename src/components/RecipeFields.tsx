@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useLang } from '@/lib/i18n'
+import { createClient } from '@/lib/supabase'
 import { DifficultySelect } from './DishFields'
 import { PlusIcon, SparkleIcon } from './Illustrations'
 import type { ExtractedRecipe } from '@/types'
@@ -57,9 +58,14 @@ function AiExtractPanel({ onResult }: { onResult: (r: ExtractedRecipe) => void }
     setExtracting(true)
     setError('')
     try {
+      // 带上登录凭证：网站公开后，只有登录的人才能用 AI（不然谁都能花你的 Gemini 额度）
+      const { data: { session } } = await createClient().auth.getSession()
       const res = await fetch('/api/extract-recipe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
         body: JSON.stringify({
           images: images.map(img => ({ imageBase64: img.base64, mimeType: img.mimeType })),
         }),
