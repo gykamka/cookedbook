@@ -315,7 +315,7 @@ export default function MenuPage() {
   // 整页正好一屏：顶栏在上，搜索框贴底，书把中间的空间撑满，所以不管手机多高都不留空。
   // 手机上 iPhone Safari 会把状态栏下面一条虚化，顶栏往下挪躲开它
   return (
-    <main className="h-safe-screen flex flex-col overflow-x-clip pt-1.5 pb-4">
+    <main className="h-dvh flex flex-col overflow-x-clip pt-1.5 pb-4">
       <div className="max-w-lg w-full mx-auto px-4 flex-1 min-h-0 flex flex-col">
 
         {/* 语言切换靠左；加菜（圆形 +）和退出靠右 */}

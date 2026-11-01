@@ -89,7 +89,7 @@ export default function ImageCropper({ src, progress, initialCover, onCancel, on
   ]
 
   return (
-    <div className="fixed inset-0 z-50 bg-paper flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="fixed inset-0 z-50 bg-paper flex flex-col">
       <div className="flex items-center justify-between px-4 h-16 border-b-[3px] border-ink flex-shrink-0">
         <button type="button" onClick={onCancel} className="text-ink-soft underline underline-offset-4">
           {t.cancel}
