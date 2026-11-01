@@ -252,14 +252,14 @@ export default function MenuPage() {
   function renderChapter(cat: string, items: Dish[]) {
     return (
       <div>
-        <div className="flex flex-col items-center text-center">
-          <CategoryArt category={cat} size={60} />
-          <p className="hint mt-1">{t.chapterN(categories.indexOf(cat) + 1)}</p>
-          <h2 className="text-2xl tracking-widest">{label(cat)}</h2>
-          <p className="hint mt-0.5">{t.dishCount(items.length)}</p>
+        {/* 章节标题压成一行：小图 + 名字 + 几道菜，下面一条虚线，把地方留给菜 */}
+        <div className="flex items-center justify-center gap-2.5 pb-3 border-b-2 border-dashed border-ink/20">
+          <CategoryArt category={cat} size={40} />
+          <h2 className="text-xl tracking-widest">{label(cat)}</h2>
+          <span className="hint self-end mb-0.5">{t.dishCount(items.length)}</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6 mt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6 mt-5">
           {items.map(dish => (
             <button
               key={dish.id}
@@ -315,17 +315,26 @@ export default function MenuPage() {
   // 整页正好一屏：顶栏在上，搜索框贴底，书把中间的空间撑满，所以不管手机多高都不留空。
   // 手机上 iPhone Safari 会把状态栏下面一条虚化，顶栏往下挪躲开它
   return (
-    <main className="h-dvh flex flex-col overflow-x-clip pt-12 sm:pt-6 pb-4">
+    <main className="h-dvh flex flex-col overflow-x-clip pt-1.5 pb-4">
       <div className="max-w-lg w-full mx-auto px-4 flex-1 min-h-0 flex flex-col">
 
+        {/* 语言切换靠左；加菜（圆形 +）和退出靠右 */}
         <div className="flex items-center justify-between gap-2 h-14">
           <LangSwitch />
-          <button type="button" onClick={() => router.push('/add-dish')} className="btn btn-coral py-1 px-3.5 text-sm">
-            <PlusIcon size={16} /> {t.addShort}
-          </button>
-          <button type="button" onClick={handleSignOut} className="text-sm text-ink-soft underline underline-offset-4">
-            {t.signOut}
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => router.push('/add-dish')}
+              className="btn btn-coral w-9 h-9 p-0"
+              aria-label={t.addShort}
+              title={t.addShort}
+            >
+              <PlusIcon size={18} />
+            </button>
+            <button type="button" onClick={handleSignOut} className="text-sm text-ink-soft underline underline-offset-4">
+              {t.signOut}
+            </button>
+          </div>
         </div>
 
         {loading ? (
