@@ -18,6 +18,8 @@
   --color-brick: #B4573F;
   --color-cream: #FBF2DC;
   --color-cream-deep: #F1E1BC;
+  /* 内页上的菜谱框：比米黄内页稍亮一点的暖白，不刺眼 */
+  --color-card: #FEF8EA;
 
   /* 字母数字用 Huninn，汉字落到简体的 Noto Sans SC */
   --font-sans: var(--font-huninn), var(--font-noto-sc), "PingFang SC", "Microsoft YaHei", sans-serif;

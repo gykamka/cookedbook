@@ -7,7 +7,7 @@ import { CategoryArt, categoryTint, ClockIcon } from './Illustrations'
 import type { Dish } from '@/types'
 
 // 带框的一小块，标题像贴纸一样贴在框的上边
-function Framed({ label, color, tint = 'bg-white', children }: {
+function Framed({ label, color, tint = 'bg-card', children }: {
   label: string
   color: string
   tint?: string
@@ -78,40 +78,50 @@ export default function DishPageContent({ dish, photos, onEdit }: {
       </div>
 
       <div className="mt-7 space-y-7">
-        {ingredientList.length > 0 && (
-          <Framed label={t.ingredients} color="bg-wakatake">
-            {/* 固定分成左右两栏，中间一条虚线；每个食材照原样写，长的就在自己那栏里换行 */}
-            <ul
-              className="columns-2 gap-x-7"
-              style={{ columnRule: '2px dashed rgb(62 58 57 / 0.2)' }}
-            >
-              {ingredientList.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 break-inside-avoid pb-2.5 leading-snug break-words">
-                  <span className="mt-[0.45em] w-1.5 h-1.5 rounded-full bg-wakatake ring-2 ring-ink flex-shrink-0" />
-                  <span className="min-w-0">{item.trim()}</span>
-                </li>
-              ))}
-            </ul>
-          </Framed>
-        )}
+        {/* 食材和步骤放在同一个框里，中间一条虚线，步骤的贴纸贴在虚线上 */}
+        {(ingredientList.length > 0 || stepList.length > 0) && (
+          <Framed
+            label={ingredientList.length > 0 ? t.ingredients : t.steps}
+            color={ingredientList.length > 0 ? 'bg-wakatake' : 'bg-coral'}
+          >
+            {ingredientList.length > 0 && (
+              /* 固定分成左右两栏，中间一条虚线；每个食材照原样写，长的就在自己那栏里换行 */
+              <ul
+                className="columns-2 gap-x-7"
+                style={{ columnRule: '2px dashed rgb(62 58 57 / 0.2)' }}
+              >
+                {ingredientList.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 break-inside-avoid pb-2.5 leading-snug break-words">
+                    <span className="mt-[0.45em] w-1.5 h-1.5 rounded-full bg-wakatake ring-2 ring-ink flex-shrink-0" />
+                    <span className="min-w-0">{item.trim()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-        {stepList.length > 0 && (
-          <Framed label={t.steps} color="bg-coral">
-            <ol className="space-y-4">
-              {stepList.map((step, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-yamabuki border-[2.5px] border-ink flex items-center justify-center text-sm">
-                    {i + 1}
-                  </span>
-                  <p className="leading-relaxed flex-1 pt-0.5">{step}</p>
-                </li>
-              ))}
-            </ol>
+            {ingredientList.length > 0 && stepList.length > 0 && (
+              <div className="relative border-t-2 border-dashed border-ink/20 -mx-4 mt-3 mb-6">
+                <span className="sticker bg-coral absolute -top-3.5 left-4">{t.steps}</span>
+              </div>
+            )}
+
+            {stepList.length > 0 && (
+              <ol className="space-y-4">
+                {stepList.map((step, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-yamabuki border-[2.5px] border-ink flex items-center justify-center text-sm">
+                      {i + 1}
+                    </span>
+                    <p className="leading-relaxed flex-1 pt-0.5">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            )}
           </Framed>
         )}
 
         {dish.notes && (
-          <Framed label={t.tips} color="bg-mizu" tint="bg-yamabuki-pale">
+          <Framed label={t.tips} color="bg-yamabuki" tint="bg-mizu-pale">
             <p className="leading-relaxed whitespace-pre-wrap">{dish.notes}</p>
           </Framed>
         )}
