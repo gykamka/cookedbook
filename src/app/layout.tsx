@@ -26,8 +26,6 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#FFFCF6",
-  // 铺满整屏，配合 globals.css 里的 safe-area 留白，主屏幕打开时顶栏不会钻到状态栏下面
-  viewportFit: "cover",
 };
 
 export default function RootLayout({

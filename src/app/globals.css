@@ -18,6 +18,8 @@
   --color-brick: #B4573F;
   --color-cream: #FBF2DC;
   --color-cream-deep: #F1E1BC;
+  /* 内页上的菜谱框：乳白色，比纯白柔和 */
+  --color-card: #FFFDF7;
 
   /* 字母数字用 Huninn，汉字落到简体的 Noto Sans SC */
   --font-sans: var(--font-huninn), var(--font-noto-sc), "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -48,19 +50,10 @@ button:disabled {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 24 L6 17 L19 4 L24 9 L11 22 Z' fill='%23F6D27A' stroke='%233E3A39' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M16 7 L21 12' stroke='%233E3A39' stroke-width='2'/%3E%3Cpath d='M4 24 L6 17 L11 22 Z' fill='%23F2A497' stroke='%233E3A39' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E") 3 25, pointer;
 }
 
-/* 从 iPhone 主屏幕图标打开时（没有浏览器栏），页面会铺到状态栏和底部横条下面，
-   这里让出刘海/灵动岛和底部横条的位置。在 Safari 里这两个值是 0，不受影响 */
 body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* 正好一屏高（去掉上面让出的安全区） */
-.h-safe-screen {
-  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
 @layer components {
